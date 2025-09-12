@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Sheets CRUD Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .config-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .tab {
+            padding: 15px 25px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            color: #4CAF50;
+            border-bottom-color: #4CAF50;
+        }
+        
+        .tab:hover {
+            color: #4CAF50;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .form-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800 0%, #e68900 100%);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .data-table th {
+            background: #4CAF50;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .row-number {
+            width: 80px;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .service-account-info {
+            background: #e8f5e8;
+            border: 1px solid #4CAF50;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .service-account-info h4 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Google Sheets CRUD Interface</h1>
+            <p>Service Account Authentication - No OAuth Required!</p>
+        </div>
+        
+        <!-- Configuration Section -->
+        <div class="config-section">
+            <div class="service-account-info">
+                <h4>🔑 Service Account Active</h4>
+                <p><strong>Email:</strong> clients@eastern-surface-466900-f1.iam.gserviceaccount.com</p>
+                <p><strong>Project:</strong> eastern-surface-466900-f1</p>
+                <p><strong>Spreadsheet ID:</strong> 1vDJ10oYn7tP9Et1l8poKoYZMXfVCdbe7PNuNZ0WSQhM</p>
+                <p><strong>Sheet Name:</strong> Sheet1</p>
+                <p>✅ Everything is hardcoded - ready to use immediately!</p>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('create')">➕ Create</button>
+                <button class="tab" onclick="showTab('read')">📖 Read</button>
+                <button class="tab" onclick="showTab('update')">✏️ Update</button>
+                <button class="tab" onclick="showTab('delete')">🗑️ Delete</button>
+            </div>
+            
+            <!-- Create Tab -->
+            <div id="create" class="tab-content active">
+                <div class="form-section">
+                    <h3>Create New Client Record</h3>
+                    <form id="createForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="createClientId">Client ID:</label>
+                                <input type="text" id="createClientId" placeholder="e.g., C001" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="createCompanyName">Company Name:</label>
+                                <input type="text" id="createCompanyName" placeholder="e.g., Dental Care" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="createTwilioNumber">Twilio Number:</label>
+                                <input type="text" id="createTwilioNumber" placeholder="e.g., 14155550101" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="createContactEmail">Contact Email:</label>
+                                <input type="email" id="createContactEmail" placeholder="e.g., info@company.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="createCrmConnected">CRM Connected:</label>
+                                <select id="createCrmConnected" required>
+                                    <option value="">Select CRM...</option>
+                                    <option value="Google Sheets">Google Sheets</option>
+                                    <option value="HubSpot">HubSpot</option>
+                                    <option value="Airtable">Airtable</option>
+                                    <option value="Pipedrive">Pipedrive</option>
+                                    <option value="Google Calendar">Google Calendar</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="createCalendarId">Calendar ID:</label>
+                                <input type="text" id="createCalendarId" placeholder="e.g., company@gmail.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="createStatus">Status:</label>
+                                <select id="createStatus" required>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="createServices">Services:</label>
+                                <textarea id="createServices" placeholder="e.g., Checkup – 500 SEK; Cleaning – 700 SEK" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="createOpeningHours">Opening Hours:</label>
+                                <input type="text" id="createOpeningHours" placeholder="e.g., Mon–Fri: 09–18" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="createBookingRules">Booking Rules:</label>
+                                <input type="text" id="createBookingRules" placeholder="e.g., 24h cancellation notice" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="createCrmApiKey">CRM API Key / OAuth Token:</label>
+                                <textarea id="createCrmApiKey" placeholder="Enter API key or OAuth token" required></textarea>
+                            </div>
+                        </div>
+                        <button type="submit">➕ Create Record</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Read Tab -->
+            <div id="read" class="tab-content">
+                <div class="form-section">
+                    <h3>Read Data from Sheet</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="readRange">Range (e.g., A1:Z100):</label>
+                            <input type="text" id="readRange" value="A1:Z100" placeholder="A1:Z100">
+                        </div>
+                    </div>
+                    <button type="button" class="btn-info" onclick="readData()">📖 Read All Data</button>
+                    <button type="button" class="btn-info" onclick="readHeaders()">📋 Read Headers Only</button>
+                </div>
+            </div>
+            
+            <!-- Update Tab -->
+            <div id="update" class="tab-content">
+                <div class="form-section">
+                    <h3>Update Existing Record</h3>
+                    <form id="updateForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="updateRow">Row Number:</label>
+                                <input type="number" id="updateRow" class="row-number" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="updateClientId">Client ID:</label>
+                                <input type="text" id="updateClientId" placeholder="e.g., C001">
+                            </div>
+                            <div class="form-group">
+                                <label for="updateCompanyName">Company Name:</label>
+                                <input type="text" id="updateCompanyName" placeholder="e.g., Dental Care">
+                            </div>
+                            <div class="form-group">
+                                <label for="updateTwilioNumber">Twilio Number:</label>
+                                <input type="text" id="updateTwilioNumber" placeholder="e.g., 14155550101">
+                            </div>
+                            <div class="form-group">
+                                <label for="updateContactEmail">Contact Email:</label>
+                                <input type="email" id="updateContactEmail" placeholder="e.g., info@company.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="updateCrmConnected">CRM Connected:</label>
+                                <select id="updateCrmConnected">
+                                    <option value="">Select CRM...</option>
+                                    <option value="Google Sheets">Google Sheets</option>
+                                    <option value="HubSpot">HubSpot</option>
+                                    <option value="Airtable">Airtable</option>
+                                    <option value="Pipedrive">Pipedrive</option>
+                                    <option value="Google Calendar">Google Calendar</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="updateCalendarId">Calendar ID:</label>
+                                <input type="text" id="updateCalendarId" placeholder="e.g., company@gmail.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="updateStatus">Status:</label>
+                                <select id="updateStatus">
+                                    <option value="">Select Status...</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="updateServices">Services:</label>
+                                <textarea id="updateServices" placeholder="e.g., Checkup – 500 SEK; Cleaning – 700 SEK"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="updateOpeningHours">Opening Hours:</label>
+                                <input type="text" id="updateOpeningHours" placeholder="e.g., Mon–Fri: 09–18">
+                            </div>
+                            <div class="form-group">
+                                <label for="updateBookingRules">Booking Rules:</label>
+                                <input type="text" id="updateBookingRules" placeholder="e.g., 24h cancellation notice">
+                            </div>
+                            <div class="form-group">
+                                <label for="updateCrmApiKey">CRM API Key / OAuth Token:</label>
+                                <textarea id="updateCrmApiKey" placeholder="Enter API key or OAuth token"></textarea>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-warning">✏️ Update Record</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Delete Tab -->
+            <div id="delete" class="tab-content">
+                <div class="form-section">
+                    <h3>Delete Records</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="deleteRow">Row Number to Delete:</label>
+                            <input type="number" id="deleteRow" class="row-number" required>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-danger" onclick="deleteRow()">🗑️ Delete Row</button>
+                    <button type="button" class="btn-danger" onclick="clearSheet()">🧹 Clear Entire Sheet</button>
+                </div>
+            </div>
+            
+            <!-- Results Section -->
+            <div class="form-section">
+                <h3>📊 Results</h3>
+                <div id="result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - everything is hardcoded
+        function getConfig() {
+            return {
+                spreadsheetId: "1vDJ10oYn7tP9Et1l8poKoYZMXfVCdbe7PNuNZ0WSQhM",
+                sheetName: "Sheet1"
+            };
+        }
+
+        // Show result
+        function showResult(data, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${isError ? 'error' : 'success'}`;
+            resultDiv.textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+        }
+
+        // Tab functionality
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Create record
+        document.getElementById('createForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const config = getConfig();
+            
+            // No validation needed - everything is hardcoded
+
+            const payload = {
+                clientId: document.getElementById('createClientId').value,
+                companyName: document.getElementById('createCompanyName').value,
+                twilioNumber: document.getElementById('createTwilioNumber').value,
+                contactEmail: document.getElementById('createContactEmail').value,
+                crmConnected: document.getElementById('createCrmConnected').value,
+                calendarId: document.getElementById('createCalendarId').value,
+                status: document.getElementById('createStatus').value,
+                services: document.getElementById('createServices').value,
+                openingHours: document.getElementById('createOpeningHours').value,
+                bookingRules: document.getElementById('createBookingRules').value,
+                crmApiKey: document.getElementById('createCrmApiKey').value
+            };
+
+            try {
+                const response = await fetch('/api/sheets/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...config, payload })
+                });
+                const result = await response.json();
+                showResult(result);
+                document.getElementById('createForm').reset();
+            } catch (error) {
+                showResult('Error: ' + error.message, true);
+            }
+        });
+
+        // Read data
+        async function readData() {
+            const config = getConfig();
+            const range = document.getElementById('readRange').value;
+            
+            // No validation needed - everything is hardcoded
+
+            try {
+                const response = await fetch('/api/sheets/read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...config, range })
+                });
+                const result = await response.json();
+                
+                if (result.success && result.data.values && result.data.values.length > 0) {
+                    displayTable(result.data.values);
+                } else {
+                    showResult('No data found');
+                }
+            } catch (error) {
+                showResult('Error: ' + error.message, true);
+            }
+        }
+
+        // Read headers only
+        async function readHeaders() {
+            const config = getConfig();
+            
+            // No validation needed - everything is hardcoded
+
+            try {
+                const response = await fetch('/api/sheets/read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...config, range: 'A1:K1' })
+                });
+                const result = await response.json();
+                showResult(result);
+            } catch (error) {
+                showResult('Error: ' + error.message, true);
+            }
+        }
+
+        // Display data in table format
+        function displayTable(data) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result';
+            
+            if (data.length === 0) {
+                resultDiv.innerHTML = 'No data found';
+                return;
+            }
+
+            let tableHTML = '<table class="data-table"><thead><tr>';
+            
+            // Headers
+            const headers = ['Client ID', 'Company Name', 'Twilio Number', 'Contact Email', 'CRM Connected', 'Calendar ID', 'Status', 'Services', 'Opening Hours', 'Booking Rules', 'CRM API Key'];
+            headers.forEach(header => {
+                tableHTML += `<th>${header}</th>`;
+            });
+            tableHTML += '</tr></thead><tbody>';
+            
+            // Data rows
+            for (let i = 0; i < data.length; i++) {
+                tableHTML += '<tr>';
+                for (let j = 0; j < headers.length; j++) {
+                    const cellValue = data[i][j] || '';
+                    if (j === 6) { // Status column
+                        const statusClass = cellValue.toLowerCase() === 'active' ? 'status-active' : 'status-inactive';
+                        tableHTML += `<td><span class="status-badge ${statusClass}">${cellValue}</span></td>`;
+                    } else {
+                        tableHTML += `<td>${cellValue}</td>`;
+                    }
+                }
+                tableHTML += '</tr>';
+            }
+            
+            tableHTML += '</tbody></table>';
+            resultDiv.innerHTML = tableHTML;
+        }
+
+        // Update record
+        document.getElementById('updateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const config = getConfig();
+            const row = document.getElementById('updateRow').value;
+            
+            if (!row) {
+                showResult('Please enter Row Number', true);
+                return;
+            }
+
+            const payload = {
+                clientId: document.getElementById('updateClientId').value,
+                companyName: document.getElementById('updateCompanyName').value,
+                twilioNumber: document.getElementById('updateTwilioNumber').value,
+                contactEmail: document.getElementById('updateContactEmail').value,
+                crmConnected: document.getElementById('updateCrmConnected').value,
+                calendarId: document.getElementById('updateCalendarId').value,
+                status: document.getElementById('updateStatus').value,
+                services: document.getElementById('updateServices').value,
+                openingHours: document.getElementById('updateOpeningHours').value,
+                bookingRules: document.getElementById('updateBookingRules').value,
+                crmApiKey: document.getElementById('updateCrmApiKey').value
+            };
+
+            // Remove empty fields
+            Object.keys(payload).forEach(key => {
+                if (!payload[key]) delete payload[key];
+            });
+
+            try {
+                const response = await fetch('/api/sheets/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...config, row, payload })
+                });
+                const result = await response.json();
+                showResult(result);
+                document.getElementById('updateForm').reset();
+            } catch (error) {
+                showResult('Error: ' + error.message, true);
+            }
+        });
+
+        // Delete row
+        async function deleteRow() {
+            const config = getConfig();
+            const row = document.getElementById('deleteRow').value;
+            
+            if (!row) {
+                showResult('Please enter Row Number', true);
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete row ${row}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/sheets/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...config, row })
+                });
+                const result = await response.json();
+                showResult(result);
+                document.getElementById('deleteRow').value = '';
+            } catch (error) {
+                showResult('Error: ' + error.message, true);
+            }
+        }
+
+        // Clear sheet
+        async function clearSheet() {
+            const config = getConfig();
+            
+            // No validation needed - everything is hardcoded
+
+            if (!confirm('Are you sure you want to clear the entire sheet? This action cannot be undone!')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/sheets/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const result = await response.json();
+                showResult(result);
+            } catch (error) {
+                showResult('Error: ' + error.message, true);
+            }
+        }
+    </script>
+</body>
+</html>

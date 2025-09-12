@@ -1,16 +1,16 @@
 {
-  "name": "crm-webhook-worker",
+  "name": "google-sheets-crud-service",
   "version": "1.0.0",
-  "description": "Dynamic webhook worker for multi-client CRM & Google Calendar integration",
-  "main": "index.js",
+  "description": "Google Sheets CRUD with Service Account Authentication",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "node-fetch": "^3.3.2"
+    "googleapis": "^128.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
@@ -19,14 +19,10 @@
     "node": ">=18.0.0"
   },
   "keywords": [
-    "n8n",
-    "crm",
-    "hubspot",
-    "pipedrive",
-    "airtable",
-    "google-calendar",
-    "webhook",
-    "saas"
+    "google-sheets",
+    "crud",
+    "service-account",
+    "express"
   ],
   "author": "Your Name",
   "license": "MIT"
