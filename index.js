@@ -18,15 +18,35 @@ async function getGoogleAccessToken(refreshToken, clientId, clientSecret) {
     body: params
   });
   const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to refresh token");
   return data.access_token;
 }
 
 app.post("/crm-action", async (req, res) => {
   const { crmType, crmApiKey, action, payload, calendarId, clientId, company } = req.body;
-  console.log(req.body);
+  console.log("Incoming CRM Action:", req.body);
+
   try {
-    // HubSpot
-    if (crmType === "HubSpot") {
+    // Normalize crmType (remove spaces, lower-case)
+    const crm = crmType.replace(/\s+/g, "").toLowerCase();
+
+    // ✅ Google Sheets
+    if (crm === "googlesheets") {
+      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${calendarId}/values/Bookings!A1:append?valueInputOption=USER_ENTERED`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${crmApiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          values: [[payload.name, payload.email, payload.phone, payload.service, payload.startTime, payload.endTime]]
+        })
+      });
+      return res.json(await response.json());
+    }
+
+    // ✅ HubSpot
+    if (crm === "hubspot") {
       const response = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
         method: "POST",
         headers: {
@@ -44,8 +64,8 @@ app.post("/crm-action", async (req, res) => {
       return res.json(await response.json());
     }
 
-    // Pipedrive
-    if (crmType === "Pipedrive") {
+    // ✅ Pipedrive
+    if (crm === "pipedrive") {
       const response = await fetch(`https://api.pipedrive.com/v1/persons?api_token=${crmApiKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,8 +78,8 @@ app.post("/crm-action", async (req, res) => {
       return res.json(await response.json());
     }
 
-    // Airtable
-    if (crmType === "Airtable") {
+    // ✅ Airtable
+    if (crm === "airtable") {
       const response = await fetch("https://api.airtable.com/v0/YOUR_BASE_ID/Contacts", {
         method: "POST",
         headers: {
@@ -77,10 +97,10 @@ app.post("/crm-action", async (req, res) => {
       return res.json(await response.json());
     }
 
-    // Google Calendar
-    if (crmType === "GoogleCalendar") {
+    // ✅ Google Calendar
+    if (crm === "googlecalendar") {
       const accessToken = await getGoogleAccessToken(
-        crmApiKey,              // stored refresh token
+        crmApiKey, // refresh token
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET
       );
@@ -89,11 +109,11 @@ app.post("/crm-action", async (req, res) => {
         summary: `${payload.service} Appointment`,
         description: `Booking for ${payload.name}, phone: ${payload.phone}, email: ${payload.email}`,
         start: {
-          dateTime: payload.startTime, // must be ISO string e.g. 2025-09-12T10:00:00+02:00
+          dateTime: payload.startTime,
           timeZone: "Europe/Stockholm"
         },
         end: {
-          dateTime: payload.endTime,   // must be ISO string
+          dateTime: payload.endTime,
           timeZone: "Europe/Stockholm"
         }
       };
@@ -110,9 +130,9 @@ app.post("/crm-action", async (req, res) => {
       return res.json(await response.json());
     }
 
-    res.status(400).json({ error: "Unsupported CRM" });
+    return res.status(400).json({ error: "Unsupported CRM type" });
   } catch (e) {
-    console.error(e);
+    console.error("CRM Action Error:", e);
     res.status(500).json({ error: e.message });
   }
 });
