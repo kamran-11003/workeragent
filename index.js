@@ -23,7 +23,7 @@ async function getGoogleAccessToken(refreshToken, clientId, clientSecret) {
 
 app.post("/crm-action", async (req, res) => {
   const { crmType, crmApiKey, action, payload, calendarId, clientId, company } = req.body;
-
+  console.log(req.body);
   try {
     // HubSpot
     if (crmType === "HubSpot") {
