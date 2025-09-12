@@ -1,0 +1,33 @@
+{
+  "name": "crm-webhook-worker",
+  "version": "1.0.0",
+  "description": "Dynamic webhook worker for multi-client CRM & Google Calendar integration",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "n8n",
+    "crm",
+    "hubspot",
+    "pipedrive",
+    "airtable",
+    "google-calendar",
+    "webhook",
+    "saas"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
