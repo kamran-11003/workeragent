@@ -32,7 +32,7 @@ app.post("/api/sheets/create", async (req, res) => {
   const { payload } = req.body;
   
   try {
-    // Prepare the data array with all fields
+    // Prepare the data array with all fields (extended structure)
     const values = [
       payload.clientId,
       payload.companyName,
@@ -44,7 +44,16 @@ app.post("/api/sheets/create", async (req, res) => {
       payload.services,
       payload.openingHours,
       payload.bookingRules,
-      payload.crmApiKey
+      payload.crmApiKey,
+      payload.hubspotApiKey || '',
+      payload.pipedriveApiToken || '',
+      payload.airtableApiKey || '',
+      payload.airtableBaseId || '',
+      payload.googleCalendarClientId || '',
+      payload.googleCalendarClientSecret || '',
+      payload.googleCalendarRefreshToken || '',
+      payload.googleSheetsServiceAccountEmail || '',
+      payload.googleSheetsServiceAccountKey || ''
     ];
 
     const response = await sheets.spreadsheets.values.append({
@@ -101,16 +110,16 @@ app.post("/api/sheets/update", async (req, res) => {
   const { row, payload } = req.body;
   
   try {
-    // Get current row data to merge with updates
+    // Get current row data to merge with updates (extended range)
     const readResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A${row}:K${row}`
+      range: `${SHEET_NAME}!A${row}:T${row}`
     });
     
-    // Merge current data with updates
-    let currentData = readResponse.data.values?.[0] || ['', '', '', '', '', '', '', '', '', '', ''];
+    // Merge current data with updates (extended structure)
+    let currentData = readResponse.data.values?.[0] || new Array(20).fill('');
     
-    // Update specific fields if provided
+    // Update specific fields if provided (extended field map)
     const fieldMap = {
       clientId: 0,
       companyName: 1,
@@ -122,7 +131,16 @@ app.post("/api/sheets/update", async (req, res) => {
       services: 7,
       openingHours: 8,
       bookingRules: 9,
-      crmApiKey: 10
+      crmApiKey: 10,
+      hubspotApiKey: 11,
+      pipedriveApiToken: 12,
+      airtableApiKey: 13,
+      airtableBaseId: 14,
+      googleCalendarClientId: 15,
+      googleCalendarClientSecret: 16,
+      googleCalendarRefreshToken: 17,
+      googleSheetsServiceAccountEmail: 18,
+      googleSheetsServiceAccountKey: 19
     };
     
     Object.keys(payload).forEach(key => {
@@ -131,10 +149,10 @@ app.post("/api/sheets/update", async (req, res) => {
       }
     });
     
-    // Update the row
+    // Update the row (extended range)
     const response = await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A${row}:K${row}`,
+      range: `${SHEET_NAME}!A${row}:T${row}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [currentData]
@@ -326,6 +344,17 @@ app.post("/crm-action", async (req, res) => {
     const services = clientData['Services'] || '';
     const openingHours = clientData['Opening Hours'] || '';
     const bookingRules = clientData['Booking Rules'] || '';
+    
+    // Extended CRM credentials
+    const hubspotApiKey = clientData['HubSpot API Key'] || '';
+    const pipedriveApiToken = clientData['Pipedrive API Token'] || '';
+    const airtableApiKey = clientData['Airtable API Key'] || '';
+    const airtableBaseId = clientData['Airtable Base ID'] || '';
+    const googleCalendarClientId = clientData['Google Calendar Client ID'] || '';
+    const googleCalendarClientSecret = clientData['Google Calendar Client Secret'] || '';
+    const googleCalendarRefreshToken = clientData['Google Calendar Refresh Token'] || '';
+    const googleSheetsServiceAccountEmail = clientData['Google Sheets Service Account Email'] || '';
+    const googleSheetsServiceAccountKey = clientData['Google Sheets Service Account Key'] || '';
 
     console.log(`📊 Found client: ${company} (${crmType})`);
 
@@ -341,33 +370,24 @@ app.post("/crm-action", async (req, res) => {
         });
       }
 
-      try {
-        // Generate available slots based on opening hours and date
-        const availableSlots = generateAvailableSlots(date, openingHours, services);
+      // Generate available slots based on opening hours and date
+      const availableSlots = generateAvailableSlots(date, openingHours, services);
 
-        return res.json({
-          success: true,
-          action: 'check_availability',
-          client: {
-            companyName: company,
-            crmType: crmType,
-            phoneNumber: phoneNumber,
-            services: services,
-            openingHours: openingHours,
-            bookingRules: bookingRules
-          },
-          date: date,
-          availableSlots: availableSlots,
-          message: `Found ${availableSlots.length} available slots for ${company} on ${date}`
-        });
-      } catch (error) {
-        console.error('Error generating available slots:', error);
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to generate available slots',
-          message: 'Unable to check availability at this time. Please try again later.'
-        });
-      }
+      return res.json({
+        success: true,
+        action: 'check_availability',
+        client: {
+          companyName: company,
+          crmType: crmType,
+          phoneNumber: phoneNumber,
+          services: services,
+          openingHours: openingHours,
+          bookingRules: bookingRules
+        },
+        date: date,
+        availableSlots: availableSlots,
+        message: `Found ${availableSlots.length} available slots for ${company} on ${date}`
+      });
     }
 
     if (action === 'book_appointment') {
@@ -382,17 +402,20 @@ app.post("/crm-action", async (req, res) => {
 
       // HubSpot
       if (crmType === "HubSpot") {
+        const apiKey = hubspotApiKey || crmApiKey;
         const response = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${crmApiKey}`
+            "Authorization": `Bearer ${apiKey}`
           },
           body: JSON.stringify({
             properties: {
               firstname: payload.name,
               email: payload.email,
-              phone: payload.phone
+              phone: payload.phone,
+              service: payload.service,
+              appointment_date: payload.startTime
             }
           })
         });
@@ -408,7 +431,8 @@ app.post("/crm-action", async (req, res) => {
 
       // Pipedrive
       if (crmType === "Pipedrive") {
-        const response = await fetch(`https://api.pipedrive.com/v1/persons?api_token=${crmApiKey}`, {
+        const apiToken = pipedriveApiToken || crmApiKey;
+        const response = await fetch(`https://api.pipedrive.com/v1/persons?api_token=${apiToken}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -416,7 +440,9 @@ app.post("/crm-action", async (req, res) => {
           body: JSON.stringify({
             name: payload.name,
             email: payload.email,
-            phone: payload.phone
+            phone: payload.phone,
+            service: payload.service,
+            appointment_date: payload.startTime
           })
         });
         const result = await response.json();
@@ -431,17 +457,23 @@ app.post("/crm-action", async (req, res) => {
 
       // Airtable
       if (crmType === "Airtable") {
-        const response = await fetch("https://api.airtable.com/v0/YOUR_BASE_ID/Contacts", {
+        const apiKey = airtableApiKey || crmApiKey;
+        const baseId = airtableBaseId || 'YOUR_BASE_ID';
+        
+        const response = await fetch(`https://api.airtable.com/v0/${baseId}/Contacts`, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${crmApiKey}`,
+            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
             fields: {
               Name: payload.name,
               Email: payload.email,
-              Phone: payload.phone
+              Phone: payload.phone,
+              Service: payload.service,
+              "Start Time": payload.startTime,
+              "End Time": payload.endTime
             }
           })
         });
@@ -457,19 +489,26 @@ app.post("/crm-action", async (req, res) => {
 
       // Google Calendar
       if (crmType === "Google Calendar") {
-        // Parse the CRM API Key JSON for Google Calendar
-        let googleCredentials;
-        try {
-          googleCredentials = JSON.parse(crmApiKey);
-        } catch (e) {
-          throw new Error('Invalid Google Calendar credentials format');
+        // Use individual credential fields or fallback to JSON in CRM API Key
+        let clientId, clientSecret, refreshToken;
+        
+        if (googleCalendarClientId && googleCalendarClientSecret && googleCalendarRefreshToken) {
+          clientId = googleCalendarClientId;
+          clientSecret = googleCalendarClientSecret;
+          refreshToken = googleCalendarRefreshToken;
+        } else {
+          // Fallback to JSON format
+          try {
+            const googleCredentials = JSON.parse(crmApiKey);
+            clientId = googleCredentials.client_id;
+            clientSecret = googleCredentials.client_secret;
+            refreshToken = googleCredentials.refresh_token;
+          } catch (e) {
+            throw new Error('Invalid Google Calendar credentials format');
+          }
         }
 
-        const accessToken = await getGoogleAccessToken(
-          googleCredentials.refresh_token,
-          googleCredentials.client_id,
-          googleCredentials.client_secret
-        );
+        const accessToken = await getGoogleAccessToken(refreshToken, clientId, clientSecret);
 
         const event = {
           summary: `${payload.service} Appointment`,
@@ -567,20 +606,6 @@ app.get("/health", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-
-// Add CORS middleware for n8n integration
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
-
 app.listen(PORT, () => {
   console.log("🚀 Google Sheets CRUD Server running on port " + PORT);
   console.log("📊 Interface: http://localhost:" + PORT);

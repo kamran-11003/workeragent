@@ -337,9 +337,16 @@
                                 <label for="createBookingRules">Booking Rules:</label>
                                 <input type="text" id="createBookingRules" placeholder="e.g., 24h cancellation notice" required>
                             </div>
-                            <div class="form-group">
-                                <label for="createCrmApiKey">CRM API Key / OAuth Token:</label>
-                                <textarea id="createCrmApiKey" placeholder="Enter API key or OAuth token" required></textarea>
+                            <!-- Dynamic CRM Credentials Section -->
+                            <div id="crmCredentialsSection" class="form-group" style="display: none;">
+                                <label>CRM Credentials:</label>
+                                <div id="crmCredentialsFields"></div>
+                            </div>
+                            
+                            <!-- Fallback for legacy API Key field -->
+                            <div class="form-group" id="legacyApiKeyField">
+                                <label for="createCrmApiKey">CRM API Key / OAuth Token (Legacy):</label>
+                                <textarea id="createCrmApiKey" placeholder="Enter API key or OAuth token"></textarea>
                             </div>
                         </div>
                         <button type="submit">➕ Create Record</button>
@@ -423,8 +430,15 @@
                                 <label for="updateBookingRules">Booking Rules:</label>
                                 <input type="text" id="updateBookingRules" placeholder="e.g., 24h cancellation notice">
                             </div>
-                            <div class="form-group">
-                                <label for="updateCrmApiKey">CRM API Key / OAuth Token:</label>
+                            <!-- Dynamic CRM Credentials Section for Update -->
+                            <div id="updateCrmCredentialsSection" class="form-group" style="display: none;">
+                                <label>CRM Credentials:</label>
+                                <div id="updateCrmCredentialsFields"></div>
+                            </div>
+                            
+                            <!-- Fallback for legacy API Key field -->
+                            <div class="form-group" id="updateLegacyApiKeyField">
+                                <label for="updateCrmApiKey">CRM API Key / OAuth Token (Legacy):</label>
                                 <textarea id="updateCrmApiKey" placeholder="Enter API key or OAuth token"></textarea>
                             </div>
                         </div>
@@ -487,6 +501,100 @@
             event.target.classList.add('active');
         }
 
+        // CRM credential field configurations
+        const crmConfigs = {
+            'Google Sheets': [
+                { id: 'googleSheetsServiceAccountEmail', label: 'Service Account Email', type: 'email', placeholder: 'service@project.iam.gserviceaccount.com' },
+                { id: 'googleSheetsServiceAccountKey', label: 'Service Account Key (JSON)', type: 'textarea', placeholder: '{"type":"service_account",...}' }
+            ],
+            'HubSpot': [
+                { id: 'hubspotApiKey', label: 'HubSpot API Key', type: 'text', placeholder: 'pat-na1-12345678-90ab-cdef-1234-567890abcdef' }
+            ],
+            'Pipedrive': [
+                { id: 'pipedriveApiToken', label: 'Pipedrive API Token', type: 'text', placeholder: 'abc123def456ghi789jkl012mno345pqr678' }
+            ],
+            'Airtable': [
+                { id: 'airtableApiKey', label: 'Airtable API Key', type: 'text', placeholder: 'key1234567890abcdef' },
+                { id: 'airtableBaseId', label: 'Airtable Base ID', type: 'text', placeholder: 'app1234567890abcdef' }
+            ],
+            'Google Calendar': [
+                { id: 'googleCalendarClientId', label: 'Google Calendar Client ID', type: 'text', placeholder: '1234567890-abcdefghijklmnop.apps.googleusercontent.com' },
+                { id: 'googleCalendarClientSecret', label: 'Google Calendar Client Secret', type: 'text', placeholder: 'GOCSPX-abcdefghijklmnopqrstuvwxyz' },
+                { id: 'googleCalendarRefreshToken', label: 'Google Calendar Refresh Token', type: 'textarea', placeholder: '1//04abcdefghijklmnopqrstuvwxyz-abcdefghijklmnopqrstuvwxyz' }
+            ]
+        };
+
+        // Function to create dynamic credential fields
+        function createCredentialFields(containerId, prefix = '') {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            const crmSelectId = prefix === 'update' ? 'updateCrmConnected' : 'createCrmConnected';
+            const crmType = document.getElementById(crmSelectId).value;
+            const config = crmConfigs[crmType];
+            
+            if (config) {
+                config.forEach(field => {
+                    const fieldDiv = document.createElement('div');
+                    fieldDiv.className = 'form-group';
+                    fieldDiv.style.marginBottom = '15px';
+                    
+                    const label = document.createElement('label');
+                    label.textContent = field.label + ':';
+                    label.setAttribute('for', prefix + field.id);
+                    
+                    let input;
+                    if (field.type === 'textarea') {
+                        input = document.createElement('textarea');
+                        input.rows = 3;
+                    } else {
+                        input = document.createElement('input');
+                        input.type = field.type;
+                    }
+                    
+                    input.id = prefix + field.id;
+                    input.placeholder = field.placeholder;
+                    input.className = 'form-control';
+                    input.style.width = '100%';
+                    input.style.padding = '8px';
+                    input.style.border = '1px solid #ddd';
+                    input.style.borderRadius = '4px';
+                    
+                    fieldDiv.appendChild(label);
+                    fieldDiv.appendChild(input);
+                    container.appendChild(fieldDiv);
+                });
+            }
+        }
+
+        // Function to show/hide CRM credential sections
+        function toggleCrmCredentials(prefix = '') {
+            const crmSelectId = prefix === 'update' ? 'updateCrmConnected' : 'createCrmConnected';
+            const crmType = document.getElementById(crmSelectId).value;
+            const credentialsSection = document.getElementById(prefix + 'crmCredentialsSection');
+            const legacyField = document.getElementById(prefix + 'legacyApiKeyField');
+            
+            if (crmType && crmConfigs[crmType]) {
+                credentialsSection.style.display = 'block';
+                legacyField.style.display = 'none';
+                createCredentialFields(prefix + 'crmCredentialsFields', prefix);
+            } else {
+                credentialsSection.style.display = 'none';
+                legacyField.style.display = 'block';
+            }
+        }
+
+        // Add event listeners for CRM type changes
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create form
+            const createCrmSelect = document.getElementById('createCrmConnected');
+            createCrmSelect.addEventListener('change', () => toggleCrmCredentials(''));
+            
+            // Update form
+            const updateCrmSelect = document.getElementById('updateCrmConnected');
+            updateCrmSelect.addEventListener('change', () => toggleCrmCredentials('update'));
+        });
+
         // Create record
         document.getElementById('createForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -507,6 +615,17 @@
                 bookingRules: document.getElementById('createBookingRules').value,
                 crmApiKey: document.getElementById('createCrmApiKey').value
             };
+
+            // Collect dynamic CRM credentials
+            const crmType = payload.crmConnected;
+            if (crmType && crmConfigs[crmType]) {
+                crmConfigs[crmType].forEach(field => {
+                    const element = document.getElementById(field.id);
+                    if (element && element.value) {
+                        payload[field.id] = element.value;
+                    }
+                });
+            }
 
             try {
                 const response = await fetch('/api/sheets/create', {
@@ -557,7 +676,7 @@
                 const response = await fetch('/api/sheets/read', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...config, range: 'A1:K1' })
+                    body: JSON.stringify({ ...config, range: 'A1:T1' })
                 });
                 const result = await response.json();
                 showResult(result);
@@ -578,8 +697,11 @@
 
             let tableHTML = '<table class="data-table"><thead><tr>';
             
-            // Headers
-            const headers = ['Client ID', 'Company Name', 'Twilio Number', 'Contact Email', 'CRM Connected', 'Calendar ID', 'Status', 'Services', 'Opening Hours', 'Booking Rules', 'CRM API Key'];
+            // Headers (extended structure)
+            const headers = [
+                'Client ID', 'Company Name', 'Twilio Number', 'Contact Email', 'CRM Connected', 'Calendar ID', 'Status', 'Services', 'Opening Hours', 'Booking Rules', 'CRM API Key',
+                'HubSpot API Key', 'Pipedrive API Token', 'Airtable API Key', 'Airtable Base ID', 'Google Calendar Client ID', 'Google Calendar Client Secret', 'Google Calendar Refresh Token', 'Google Sheets Service Account Email', 'Google Sheets Service Account Key'
+            ];
             headers.forEach(header => {
                 tableHTML += `<th>${header}</th>`;
             });
@@ -628,6 +750,17 @@
                 bookingRules: document.getElementById('updateBookingRules').value,
                 crmApiKey: document.getElementById('updateCrmApiKey').value
             };
+
+            // Collect dynamic CRM credentials for update
+            const crmType = payload.crmConnected;
+            if (crmType && crmConfigs[crmType]) {
+                crmConfigs[crmType].forEach(field => {
+                    const element = document.getElementById('update' + field.id);
+                    if (element && element.value) {
+                        payload[field.id] = element.value;
+                    }
+                });
+            }
 
             // Remove empty fields
             Object.keys(payload).forEach(key => {
